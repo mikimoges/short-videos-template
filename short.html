@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Shorts</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+         * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .app-container {
+            height: 100vh;
+            overflow-y: scroll;
+            position: relative;
+            scroll-snap-type: y mandatory;
+        }
+
+        .video-container {
+            height: 100vh;
+            position: relative;
+            scroll-snap-align: start;
+        }
+
+        .video-wrapper {
+            height: 100%;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        @media (min-width: 768px) {
+            .video-wrapper {
+                max-width: 400px;
+                margin: 0 auto;
+            }
+
+            video {
+                border-radius: 16px;
+            }
+        }
+
+       .video-overlay {
+    position: absolute;
+    bottom: 20px; /* Adjust as needed */
+    left: 20px; /* Adjust as needed */
+    z-index: 3; /* Ensure it appears above the video */
+    display: flex;
+    gap: 10px; /* Space between buttons */
+}
+        .video-info {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+
+        .video-details {
+            flex: 1;
+            padding-right: 80px;
+        }
+
+        .video-title {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .video-description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+
+        .video-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .action-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-button i {
+            font-size: 28px;
+            padding: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .action-button:hover i {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .action-button.liked i {
+            color: #ff4545;
+        }
+
+        .action-button.favorited i {
+            color: #ffeb3b;
+        }
+
+        .count {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+.progress-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 6px; /* Slightly thicker for better visibility */
+    background: rgba(255, 255, 255, 0.15);
+    z-index: 3;
+    border-radius: 6px;
+    bottom: 0; /* Or top: 0; for top placement */
+    overflow: hidden; /* Ensures overflow is clipped */
+}
+
+.progress {
+    height: 100%;
+    width: 0%; /* Initial width */
+    background: linear-gradient(90deg, #ff9f1c, #ff4040); /* Gradient effect */
+    transition: width 0.1s linear; /* Smooth transition */
+    border-radius: 6px;
+}
+
+
+
+        .video-controls {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 3;
+        }
+
+        .control-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .comment-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1a1a1a;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 4;
+        }
+
+        .comment-modal.active {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 24px;
+            border: 1px solid #333;
+            background: #2a2a2a;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .volume-slider {
+            position: absolute;
+            right: 20px;
+            bottom: 160px;
+            height: 100px;
+            width: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            display: none;
+            z-index: 3;
+        }
+
+        .volume-slider.active {
+            display: block;
+        }
+
+        .volume-level {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: #fff;
+            border-radius: 4px;
+            transition: height 0.2s ease;
+        }
+        .pause-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 60px;
+    display: none; /* Hidden by default */
+    z-index: 3;
+}
+
+.video-wrapper.paused .pause-overlay {
+    display: block; /* Show when video is paused */
+}
+    </style>
+</head>
+<body>
+    <div class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Video containers will be dynamically added here -->
+    </div>
+
+    <div class="comment-modal">
+        <div class="modal-header">
+            <h3>Comments</h3>
+            <button class="control-button" onclick="closeCommentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <input type="text" class="comment-input" placeholder="Add a comment...">
+        <div class="comments-list">
+            <!-- Comments will be dynamically added here -->
+        </div>
+    </div>
+
+
+    <script>
+    const videos = [
+        {
+            url: 'sun.mp4',
+            title: 'Amazing Sunset View',
+            description: 'Beautiful sunset captured at the beach #sunset #nature',
+            likes: 1234,
+            comments: 89,
+            shares: 45,
+            favorites: 234
+        },
+        {
+            url: 'Relaxing_music.mp4',
+            title: 'Relaxing music with beautiful place',
+            description: 'Trying out local street food #food #travel',
+            likes: 2345,
+            comments: 167,
+            shares: 89,
+            favorites: 345
+        },
+        {
+            url: 'rdr.mp4',
+            title: 'Urban Dance',
+            description: 'Street performers showing amazing moves #dance #urban',
+            likes: 3456,
+            comments: 234,
+            shares: 123,
+            favorites: 456
+        }
+    ];
+
+    let currentVideoIndex = 0;
+    const appContainer = document.querySelector('.app-container');
+    let isLoading = false;
+
+    function createVideoElement(video, index) {
+        const videoContainer = document.createElement('div');
+        videoContainer.className = 'video-container';
+        videoContainer.innerHTML = `
+            <div class="video-wrapper" onclick="screenClickPlayPause(this.querySelector('video'))">
+                <video class='video-wrappers-video' src="${video.url}" autoplay loop playsinline></video>
+                 <div class="pause-overlay">
+                    <i class="fas fa-pause screen-overlay-center"></i>
+                </div>
+                <div class="video-overlay">
+                    <div class="video-info">
+                        <div class="video-details" onclick="video_details_click_handler(${index}, event)">
+                            <h3 class="video-title">${video.title}</h3>
+                            <p class="video-description">${video.description}</p>
+                        </div>
+                        <div class="video-actions">
+                            <button class="action-button" onclick="shareVideo(${index}, event)">
+                                <i class="fas fa-share"></i>
+                                <span class="count">${video.shares}</span>
+                            </button>
+                            <button class="action-button" onclick="toggleFavorite(this, event)">
+                                <i class="fas fa-star"></i>
+                                <span class="count">${video.favorites}</span>
+                            </button>
+                            <button class="action-button" onclick="showComments(${index}, event)">
+                                <i class="fas fa-comment"></i>
+                                <span class="count">${video.comments}</span>
+                            </button>
+                            <button class="action-button" onclick="toggleLike(this, event)">
+                                <i class="fas fa-heart"></i>
+                                <span class="count">${video.likes}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+            <div class="video-controls">
+                <button class="control-button play-button" onclick="togglePlay(this)">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="control-button" onclick="toggleVolume(this)">
+                    <i class="fas fa-volume-mute"></i>
+                </button>
+            </div>
+            <div class="volume-slider">
+                <div class="volume-level" style="height: 50%"></div>
+            </div>
+            </div>
+        `;
+        return videoContainer;
+    }
+
+    function loadInitialVideos() {
+        videos.forEach((video, index) => {
+            appContainer.appendChild(createVideoElement(video, index));
+        });
+        playCurrentVideo();
+    }
+
+    function playCurrentVideo() {
+        const videoElements = document.querySelectorAll('.video-container video');
+        videoElements.forEach((video, index) => {
+            if (index === currentVideoIndex) {
+                video.muted = false;  // Ensure the video is not muted
+                video.play();
+            } else {
+                video.pause();
+                video.currentTime = 0;  // Reset other videos
+            }
+        });
+    }
+
+    function handleScroll() {
+        if (isLoading) return;
+
+        const videoContainers = document.querySelectorAll('.video-container');
+        const threshold = window.innerHeight * 0.5;
+
+        let closestIndex = currentVideoIndex;
+        let smallestDistance = Infinity;
+
+        // Find the video closest to the center of the viewport
+        videoContainers.forEach((container, index) => {
+            const rect = container.getBoundingClientRect();
+            const distanceToCenter = Math.abs(rect.top + (rect.height / 2) - (window.innerHeight / 2));
+
+            if (distanceToCenter < smallestDistance) {
+                smallestDistance = distanceToCenter;
+                closestIndex = index;
+            }
+        });
+
+        // Only update if the closest video has changed
+        if (currentVideoIndex !== closestIndex) {
+            currentVideoIndex = closestIndex;
+            playCurrentVideo();
+        }
+
+        // Load more videos when reaching the end
+        const lastContainer = videoContainers[videoContainers.length - 1];
+        const lastContainerRect = lastContainer.getBoundingClientRect();
+        if (lastContainerRect.bottom < window.innerHeight + threshold) {
+            loadMoreVideos();
+        }
+    }
+
+    function loadMoreVideos() {
+        isLoading = true;
+        setTimeout(() => {
+            videos.forEach(video => {
+                appContainer.appendChild(createVideoElement(video, appContainer.children.length));
+            });
+            isLoading = false;
+        }, 1000);
+    }
+
+    function toggleLike(button, event) {
+        event.stopPropagation();
+        button.classList.toggle('liked');
+        const count = button.querySelector('.count');
+        const currentCount = parseInt(count.textContent);
+        count.textContent = button.classList.contains('liked') ? currentCount + 1 : currentCount - 1;
+    }
+
+    function toggleFavorite(button, event) {
+        event.stopPropagation();
+        button.classList.toggle('favorited');
+        const count = button.querySelector('.count');
+        const currentCount = parseInt(count.textContent);
+        count.textContent = button.classList.contains('favorited') ? currentCount + 1 : currentCount - 1;
+    }
+
+    function shareVideo(index, event) {
+        event.stopPropagation();
+        alert(`Sharing video ${index + 1}`);
+    }
+    function video_details_click_handler(index, event) {
+        event.stopPropagation();
+        
+    }
+    function showComments(index, event) {
+        event.stopPropagation();
+        document.querySelector('.comment-modal').classList.add('active');
+    }
+
+    function closeCommentModal() {
+        document.querySelector('.comment-modal').classList.remove('active');
+    }
+       function togglePlay(button) {
+        // alert('Play button clicked');
+    const wrapper = button.closest('.video-wrapper');
+    const video = wrapper.querySelector('video');
+    const icon = button.querySelector('i');
+    
+    // Stop all other videos first
+    document.querySelectorAll('video').forEach(v => {
+        if (v !== video && !v.paused) {
+            const otherButton = v.closest('.video-wrapper').querySelector('.screen-overlay-center');
+            v.pause();
+            otherButton.className = 'fas fa-play';
+        }
+    });
+
+    if (video.paused) {
+        wrapper.querySelector('.pause-overlay').style.display = 'none';
+        video.muted = false;
+        video.play();
+        icon.className = 'fas fa-pause';
+    } else {
+        video.pause();
+        wrapper.querySelector('.pause-overlay').style.display = 'block';
+        icon.className = 'fas fa-play';
+    }
+}
+ function toggleVolume(button) {
+            const wrapper = button.closest('.video-wrapper');
+            const video = wrapper.querySelector('video');
+            const icon = button.querySelector('i');
+            const volumeSlider = wrapper.querySelector('.volume-slider');
+            
+            video.muted = !video.muted;
+            icon.className = video.muted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+            volumeSlider.classList.toggle('active');
+        }
+
+    window.addEventListener('load', () => {
+        loadInitialVideos();
+        document.querySelector('.loading-overlay').style.opacity = '0';
+        setTimeout(() => {
+            document.querySelector('.loading-overlay').style.display = 'none';
+        }, 300);
+    });
+    let app_container = document.querySelector('.app-container');
+    app_container.addEventListener('scroll', () => {
+        handleScroll(); 
+    });
+ window.addEventListener('load', () => {
+    const firstVideo = document.querySelector('.video-wrapper video');
+    
+    if (firstVideo) {
+        firstVideo.muted = true; // Mute for autoplay to work
+        firstVideo.play()
+            .then(() => {
+                // Successfully started autoplay
+            })
+            .catch(error => {
+                console.error("Autoplay prevented:", error);
+            });
+    }
+});
+function screenClickPlayPause(video) {
+    const wrapper = video.closest('.video-wrapper');
+    if (video.paused) {
+        video.play();
+        wrapper.querySelector('.pause-overlay').style.display = 'none';
+    } else {
+        wrapper.querySelector('.pause-overlay').style.display = 'block';
+        video.pause();
+    }
+    
+}
+// window.onload = function() {
+    
+
+// document.querySelectorAll('.video-wrappers-video').forEach(wrapper => {
+//     console.log('wrapper', wrapper);
+//     wrapper.addEventListener('click', () => {
+//         // alert('Video wrapper clicked');
+//         // togglePlay(wrapper.querySelector('.play-button'));
+//         screenClickPlayPause(wrapper)
+//     });
+// })
+// }
+    // window.addEventListener('scroll', handleScroll);
+
+    // window.addEventListener(scroll, () => {
+    //     alert('scroll');
+    // })
+</script>
+
+
+ 
+
+</body>
+</html>
